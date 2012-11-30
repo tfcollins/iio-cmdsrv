@@ -150,7 +150,7 @@ error:
 	return ret;
 }
 
-int iio_writebuf(int fd, int samples)
+int iio_writebuf(int samples)
 {
 	int ret, buf_len, n, rc = 0;
 	int fp;
@@ -179,7 +179,7 @@ int iio_writebuf(int fd, int samples)
 	}
 
 	do {
-		n = read(fd, data + rc, samples - rc);
+		n = fread(data + rc, 1, samples - rc, stdin);
 		if (n > 0) {
 			rc += n;
 		} else if (errno == EAGAIN) {
@@ -554,7 +554,7 @@ int main (void)
 				break;
 			case DO_WRITEBUF:
 				if (sscanf(attr, "%u", &val) == 1)
-					iio_writebuf(STDIN_FILENO, val);
+					iio_writebuf(val);
 				REPORT_RETVAL(ret);
 				break;
 			case DO_DBFSREAD:
