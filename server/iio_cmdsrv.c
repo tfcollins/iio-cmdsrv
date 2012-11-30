@@ -485,6 +485,9 @@ int main (void)
 
 
 			exit(EXIT_SUCCESS);
+		} else if (strncmp(token, "\n", 1) == 0) {
+			fflush(stdout);
+			continue;
 		} else {
 			break; /* EXIT */
 		}
