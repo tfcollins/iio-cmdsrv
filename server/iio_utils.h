@@ -440,7 +440,7 @@ error_ret:
  *
  * Typical types this is used for are device and trigger.
  **/
-inline int find_type_by_name(const char *name, const char *type)
+static inline int find_type_by_name(const char *name, const char *type)
 {
 	const struct dirent *ent;
 	int number, numstrlen;
@@ -499,7 +499,7 @@ inline int find_type_by_name(const char *name, const char *type)
 	return -ENODEV;
 }
 
-inline int _write_sysfs_int(char *filename, char *basedir, int val, int verify, int type, int val2)
+int _write_sysfs_int(char *filename, char *basedir, int val, int verify, int type, int val2)
 {
 	int ret = 0;
 	FILE *sysfsfp;

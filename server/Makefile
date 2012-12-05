@@ -1,4 +1,4 @@
-CFLAGS += -Wall -Wextra -pedantic -std=gnu99
+CFLAGS += -Wall -Wextra -pedantic -std=gnu99 -s
 
 EXEC = iio_cmdsrv
 OBJS = iio_cmdsrv.o
