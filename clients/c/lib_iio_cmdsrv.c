@@ -1,3 +1,10 @@
+/*
+ * lib IIO command server
+ *
+ * Copyright 2012 Analog Devices Inc.
+ *
+ * Licensed under the GPL-2.
+ */
 #define _GNU_SOURCE
 
 #include <stdio.h>

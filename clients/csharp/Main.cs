@@ -4,6 +4,7 @@
  * Copyright 2012 Analog Devices Inc.
  *
  * Michael Hennerich <michael.hennerich@analog.com>
+ * Licensed under the GPL-2.
  */
 
 using System;
