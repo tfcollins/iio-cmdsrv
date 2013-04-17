@@ -28,6 +28,17 @@
 #define DBFS_REG_ATTR	"direct_reg_access"
 #define REPORT_RETVAL(x) fprintf(stdout, "%d\n", x)
 
+#define HELP_TEXT \
+	"IIO Command Server Syntax:\n" \
+	"read <IIODeviceName> <Attribute>\n" \
+	"write <IIODeviceName> <Attribute> <Value>\n" \
+	"readbuf <IIODeviceName> <NUMSamples> <BytesPerSample>\n" \
+	"bufwrite <IIODeviceName> <NUMBytes>\n" \
+	"sample <IIODeviceName> <NUMSamples> <BytesPerSample>\n" \
+	"regread <IIODeviceName> <RegisterAddress>\n" \
+	"regwrite <IIODeviceName> <RegisterAddress> <Value>\n" \
+	"version\n"
+
 char dev_dir_name[PATH_MAX];
 char buf_dir_name[PATH_MAX];
 char dbfs_dir_name[PATH_MAX];
@@ -451,7 +462,9 @@ int main (void)
 	int ret;
 
 	while ((read = getline(&line, &len, stdin)) != -1) {
-
+#ifdef DEBUG
+		syslog(LOG_ERR, "%s\n", line);
+#endif
 		token = strtok_r(line, " ", &saveptr1);
 		if (token == NULL)
 			break;
@@ -476,6 +489,10 @@ int main (void)
 			printf("%s\n", CURR_VERSION);
 			fflush(stdout);
 			continue;
+		} else if (strncmp(token, "help", 4) == 0) {
+			printf("%s\n", HELP_TEXT);
+			fflush(stdout);
+			continue;
 		} else if (strncmp(token, "fru_eeprom", 10) == 0) {
 			char *serial, *date;
 			char filename[50];
@@ -496,7 +513,7 @@ int main (void)
 			exit(EXIT_SUCCESS);
 		} else if (strncmp(token, "\n", 1) == 0) {
 			fflush(stdout);
-			continue; 
+			continue;
 		} else {
 			break; /* EXIT */
 		}
