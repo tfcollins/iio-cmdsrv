@@ -35,11 +35,11 @@
 // get sockaddr, IPv4 or IPv6:
 static void *get_in_addr(struct sockaddr *sa)
 {
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    }
+	if (sa->sa_family == AF_INET) {
+		return &(((struct sockaddr_in*)sa)->sin_addr);
+	}
 
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
 int iio_cmdsrv_connect(const char *addr, const char *port, struct iio_cmdsrv *handle)
@@ -113,7 +113,7 @@ int iio_cmdsrv_connect(const char *addr, const char *port, struct iio_cmdsrv *ha
 }
 
 static int srv_receive(struct iio_cmdsrv *s, char *rbuf, unsigned rlen,
-		       char *rbuf2, unsigned *rlen2, unsigned is_str)
+			char *rbuf2, unsigned *rlen2, unsigned is_str)
 {
 	int rx_len, term = 1, retry = 1;
 	unsigned i, len = 0;
@@ -201,7 +201,7 @@ int iio_cmd_send(struct iio_cmdsrv *s, const char *str, ...)
 
 
 static int iio_cmd_read_va(struct iio_cmdsrv *s, char *rbuf, unsigned rlen,
-			   const char *str, va_list args)
+		const char *str, va_list args)
 {
 	char buf[IIO_CMDSRV_MAX_STRINGVAL];
 	char retval[IIO_CMDSRV_MAX_RETVAL + 1];
@@ -227,9 +227,7 @@ static int iio_cmd_read_va(struct iio_cmdsrv *s, char *rbuf, unsigned rlen,
 		return ret;
 	}
 
-	ret = srv_receive(s, retval, IIO_CMDSRV_MAX_RETVAL,
-		       rbuf, &rx_len, 1);
-
+	ret = srv_receive(s, retval, IIO_CMDSRV_MAX_RETVAL, rbuf, &rx_len, 1);
 
 	if ((ret >= 0) && (sscanf(retval, "%d\n", &ret) == 1)) {
 		if (ret >= 0) {
@@ -284,8 +282,8 @@ int iio_cmd_regwrite(struct iio_cmdsrv *s, char *name, unsigned reg, unsigned va
 	return iio_cmd_send(s, "regwrite %s %d %d\n", name, reg, val);
 }
 
-int iio_cmd_sample(struct iio_cmdsrv *s, const char *name,
-		   char *rbuf, unsigned count, unsigned bytes_per_sample)
+int iio_cmd_sample(struct iio_cmdsrv *s, const char *name,char *rbuf,
+		unsigned count, unsigned bytes_per_sample)
 {
 	char buf[IIO_CMDSRV_MAX_STRINGVAL];
 	int len = 0, ret, retval;
@@ -306,8 +304,7 @@ int iio_cmd_sample(struct iio_cmdsrv *s, const char *name,
 		return ret;
 	}
 
-	ret = srv_receive(s, buf, IIO_CMDSRV_MAX_RETVAL,
-		       rbuf, &rlen, 1);
+	ret = srv_receive(s, buf, IIO_CMDSRV_MAX_RETVAL, rbuf, &rlen, 1);
 
 	if ((ret >= 0) && (sscanf(buf, "%d\n", &retval) == 1)) {
 		if (retval >= 0) {
@@ -322,8 +319,8 @@ int iio_cmd_sample(struct iio_cmdsrv *s, const char *name,
 	return ret;
 }
 
-int iio_cmd_bufwrite(struct iio_cmdsrv *s, const char *name,
-		   char *wbuf, unsigned count)
+int iio_cmd_bufwrite(struct iio_cmdsrv *s, const char *name, char *wbuf,
+		unsigned count)
 {
 	char buf[IIO_CMDSRV_MAX_STRINGVAL];
 	int len = 0, ret;

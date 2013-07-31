@@ -21,24 +21,23 @@ struct iio_cmdsrv {
 };
 
 int iio_cmdsrv_connect(const char *addr, const char *port,
-		       struct iio_cmdsrv *handle);
+		struct iio_cmdsrv *handle);
 
 int iio_cmd_send(struct iio_cmdsrv *s, const char *str, ...);
 
 int iio_cmd_read(struct iio_cmdsrv *s, char *rbuf, unsigned rlen,
-		 const char *str, ...);
+		const char *str, ...);
 
-int iio_cmd_sample(struct iio_cmdsrv *s, const char *name,
-		   char *rbuf, unsigned count,
-		   unsigned bytes_per_sample);
+int iio_cmd_sample(struct iio_cmdsrv *s, const char *name, char *rbuf,
+		unsigned count, unsigned bytes_per_sample);
 
-int iio_cmd_regread(struct iio_cmdsrv *s, char *name,
-		    unsigned reg, unsigned *val);
+int iio_cmd_regread(struct iio_cmdsrv *s, char *name, unsigned reg,
+		unsigned *val);
 
-int iio_cmd_regwrite(struct iio_cmdsrv *s, char *name,
-		     unsigned reg, unsigned val);
+int iio_cmd_regwrite(struct iio_cmdsrv *s, char *name, unsigned reg,
+		unsigned val);
 
-int iio_cmd_bufwrite(struct iio_cmdsrv *s, const char *name,
-		   char *wbuf, unsigned count);
+int iio_cmd_bufwrite(struct iio_cmdsrv *s, const char *name, char *wbuf,
+		unsigned count);
 
 #endif /* LIB_IIO_CMDSRV_ */
