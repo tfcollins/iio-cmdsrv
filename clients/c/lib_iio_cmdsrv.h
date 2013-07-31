@@ -20,6 +20,8 @@ struct iio_cmdsrv {
 	char port[33];
 };
 
+void iio_cmdsrv_disconnect(struct iio_cmdsrv *handle);
+
 int iio_cmdsrv_connect(const char *addr, const char *port,
 		struct iio_cmdsrv *handle);
 

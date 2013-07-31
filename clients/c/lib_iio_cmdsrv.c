@@ -42,6 +42,15 @@ static void *get_in_addr(struct sockaddr *sa)
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+void iio_cmdsrv_disconnect(struct iio_cmdsrv *handle)
+{
+	if (handle && handle->sockfd != -1) {
+		iio_cmd_send(handle, "quit\n");
+		close(handle->sockfd);
+		handle->sockfd = -1;
+	}
+}
+
 int iio_cmdsrv_connect(const char *addr, const char *port, struct iio_cmdsrv *handle)
 {
 	struct addrinfo hints, *servinfo, *p;

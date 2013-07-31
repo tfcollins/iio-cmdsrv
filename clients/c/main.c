@@ -80,6 +80,8 @@ int main (void)
 
 	printf("main:retval (ret %d)\n", ret);
 
+	iio_cmdsrv_disconnect(&srv);
+
 	return 0;
 
 }
