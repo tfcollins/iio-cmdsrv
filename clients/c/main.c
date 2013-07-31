@@ -4,7 +4,7 @@
 #include "lib_iio_cmdsrv.h"
 
 #if 1
-int main (int argc , char* argv[])
+int main (void)
 {
 	struct iio_cmdsrv srv;
 	int ret; unsigned i;

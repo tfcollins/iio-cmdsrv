@@ -116,7 +116,7 @@ static int srv_receive(struct iio_cmdsrv *s, char *rbuf, unsigned rlen,
 			char *rbuf2, unsigned *rlen2, unsigned is_str)
 {
 	int rx_len, term = 1, retry = 1;
-	unsigned i, len = 0;
+	unsigned i = 0, len = 0;
 
 	do {
 		rx_len = recv(s->sockfd, &rbuf[len], rlen - len, 0);
@@ -323,17 +323,20 @@ int iio_cmd_bufwrite(struct iio_cmdsrv *s, const char *name, char *wbuf,
 		unsigned count)
 {
 	char buf[IIO_CMDSRV_MAX_STRINGVAL];
-	int len = 0, ret;
+	int ret;
+	unsigned int len;
+
 
 	if (s->sockfd < 0) {
 		syslog(LOG_ERR, "%s: not connected\n", __func__);
 		return -1;
 	}
 
-	len = sprintf(buf, "bufwrite %s %d\n", name, count);
-	if (len < 0)
+	ret = sprintf(buf, "bufwrite %s %d\n", name, count);
+	if (ret < 0)
 		perror("iio_cmd_send");
 
+	len = ret;
 	ret = send(s->sockfd, buf, len, 0);
 	if (ret < 0) {
 		perror("iio_cmd_send:send");
