@@ -18,7 +18,16 @@ public class IIOCmdSrv
     Socket s = null;
     const int IIO_CMDSRV_MAX_RETVAL = 14;
 
-    public bool Connect(string server)
+    public enum ConnectStatus : byte
+    {
+        connected,
+        refused,
+        noanswer,
+        nodevices,
+        badname
+    }
+
+    public ConnectStatus Connect(string server)
     {
         string [] srv_port = server.Split(':');
 		if (srv_port.Length == 2)
@@ -32,11 +41,21 @@ public class IIOCmdSrv
 		}
 	}
 
-    public bool Connect(string server, int port)
+    public ConnectStatus Connect(string server, int port)
     {
 
         IPHostEntry hostEntry = null;
-        hostEntry = Dns.GetHostEntry(server);
+        try
+        {
+            hostEntry = Dns.GetHostEntry(server);
+        }
+        catch (SocketException e)
+        {
+            Console.WriteLine(e.Message);
+            return ConnectStatus.badname;
+        }
+        bool sig = false;
+        s = null;
 
         foreach (IPAddress address in hostEntry.AddressList)
         {
@@ -47,7 +66,7 @@ public class IIOCmdSrv
 
             IAsyncResult result = tempSocket.BeginConnect(ipe, null, null);
 
-            result.AsyncWaitHandle.WaitOne(1000, true);
+            sig = result.AsyncWaitHandle.WaitOne(1000, true);
 
             if (tempSocket.Connected)
             {
@@ -65,7 +84,7 @@ public class IIOCmdSrv
 		{
 			if(Convert.ToDouble(this.Version()) >= 0.2)
 			{
-				return true;
+				return ConnectStatus.connected;
 			}
 			else
 			{
@@ -75,55 +94,75 @@ public class IIOCmdSrv
 		}
 		else
 		{
-            return false;
+            if (sig)
+                return ConnectStatus.refused;
+            return ConnectStatus.noanswer;
 		}
 	}
 
     public void Disconnect()
     {
-        if(s!=null)
+        if (s != null)
+        {
+            if (s.Connected)
+                Write("quit\n");
             s.Close();
+            s = null;
+        }
     }
 
     public string Read(string request, bool expect_retval)
     {
         Byte[] bytesSent = Encoding.ASCII.GetBytes(request);
         Byte[] bytesReceived = new Byte[256];
-
-        // Send request to the server.
-        s.Send(bytesSent, bytesSent.Length, 0);
-
         string data = "";
-        string retval = "";
-        int pos, bytes, ret;
 
-        do
+        if (s == null || !s.Connected)
+            return null;
+
+        try
         {
-            bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
-            data = data + Encoding.ASCII.GetString(bytesReceived, 0, bytes);
-            if (expect_retval)
+            // Send request to the server.
+            s.Send(bytesSent, bytesSent.Length, 0);
+
+            string retval = "";
+            int pos, bytes, ret;
+
+            do
             {
+                bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
+                data = data + Encoding.ASCII.GetString(bytesReceived, 0, bytes);
+                if (expect_retval)
+                {
+                    pos = data.IndexOf('\n');
+                    if (pos > 0)
+                    {
+                        retval = data.Substring(0, pos);
+                        ret = Convert.ToInt32(retval);
+                        if (ret < 0)
+                            return null;
+                        //    throw new Exception("TargetError: " + retval + " (" + request + ")");
+
+                        data = data.Substring(pos + 1);
+                        expect_retval = false;
+                    }
+                }
+
                 pos = data.IndexOf('\n');
                 if (pos > 0)
                 {
-                    retval = data.Substring(0, pos);
-                    ret = Convert.ToInt32(retval);
-                    if (ret < 0)
-                        throw new Exception("TargetError: " + retval + " (" + request + ")");
-
-                    data = data.Substring(pos + 1);
-                    expect_retval = false;
+                    data = data.Substring(0, pos);
+                    break;
                 }
-            }
 
-            pos = data.IndexOf('\n');
-            if (pos > 0)
-            {
-                data = data.Substring(0, pos);
-                break;
-            }
-
-        } while (bytes > 0);
+            } while (bytes > 0);
+        }
+        catch(SocketException e)
+        {
+            /* Network failed */
+            Console.WriteLine(e.Message);
+            data = null;
+        }
 
         return data;
 
@@ -134,27 +173,38 @@ public class IIOCmdSrv
         Byte[] bytesSent = Encoding.ASCII.GetBytes(request);
         Byte[] bytesReceived = new Byte[IIO_CMDSRV_MAX_RETVAL];
 
-        // Send request to the server.
-        s.Send(bytesSent, bytesSent.Length, 0);
+        if (s == null || !s.Connected)
+            return -1;
 
-        string retval = "";
-        int bytes, pos, ret;
-
-        do
+        try
         {
-            bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
-            retval = retval + Encoding.ASCII.GetString(bytesReceived, 0, bytes);
-            pos = retval.IndexOf('\n');
-            if (pos > 0)
-            {
-                retval = retval.Substring(0, pos);
-                ret = Convert.ToInt32(retval);
-                if (ret < 0)
-                    throw new Exception("TargetError: " + retval + " (" + request + ")");
+            // Send request to the server.
+            s.Send(bytesSent, bytesSent.Length, 0);
 
-                return ret;
-            }
-        } while (bytes > 0);
+            string retval = "";
+            int bytes, pos, ret;
+
+            do
+            {
+                bytes = s.Receive(bytesReceived, bytesReceived.Length, 0);
+                retval = retval + Encoding.ASCII.GetString(bytesReceived, 0, bytes);
+                pos = retval.IndexOf('\n');
+                if (pos > 0)
+                {
+                    retval = retval.Substring(0, pos);
+                    ret = Convert.ToInt32(retval);
+                    if (ret < 0)
+                        throw new Exception("TargetError: " + retval + " (" + request + ")");
+
+                    return ret;
+                }
+            } while (bytes > 0);
+
+        }
+        catch (SocketException e)
+        {
+            Console.WriteLine(e.Message);
+        }
 
         return -1;
     }
@@ -166,49 +216,58 @@ public class IIOCmdSrv
         Byte[] data = new Byte[count * itemsize];
         Byte[] tmp = new Byte[count * itemsize];
 
-        // Send request to the server.
-        s.Send(bytesSent, bytesSent.Length, 0);
-
-        int len = 0, len_tmp, do_ret = 1, ret, pos;
-        string retval = "";
-
-        do
+        try
         {
-            len_tmp = s.Receive(tmp, data.Length - len, 0);
-            if (len_tmp == 0)
-                break;
+            // Send request to the server.
+            s.Send(bytesSent, bytesSent.Length, 0);
 
-            if (do_ret == 1)
+            int len = 0, len_tmp, do_ret = 1, ret, pos;
+            string retval = "";
+
+            do
             {
-                retval = retval + Encoding.ASCII.GetString(tmp, 0, len_tmp);
-                pos = retval.IndexOf('\n');
-                if (pos > 0)
-                {
-                    retval = retval.Substring(0, pos);
-                    ret = Convert.ToInt32(retval);
-                    if (ret < 0)
-                        throw new Exception("TargetError: " + retval + " (" + request + ")");
-                    do_ret = 0;
-                    pos = pos + 1;
+                len_tmp = s.Receive(tmp, data.Length - len, 0);
+                if (len_tmp == 0)
+                    break;
 
+                if (do_ret == 1)
+                {
+                    retval = retval + Encoding.ASCII.GetString(tmp, 0, len_tmp);
+                    pos = retval.IndexOf('\n');
+                    if (pos > 0)
+                    {
+                        retval = retval.Substring(0, pos);
+                        ret = Convert.ToInt32(retval);
+                        if (ret < 0)
+                            throw new Exception("TargetError: " + retval + " (" + request + ")");
+                        do_ret = 0;
+                        pos = pos + 1;
+
+                    }
+                    else
+                    {
+                        continue;
+                    }
                 }
                 else
                 {
-                    continue;
+                    pos = 0;
                 }
-            }
-            else
-            {
-                pos = 0;
-            }
 
-            for (var i = pos; i < len_tmp; i++)
-            {
-                data[len++] = tmp[i];
-            }
+                for (var i = pos; i < len_tmp; i++)
+                {
+                    data[len++] = tmp[i];
+                }
 
-        } while (len < data.Length);
+            } while (len < data.Length);
 
+        }
+        catch (SocketException e)
+        {
+            /* Network failed */
+            Console.WriteLine(e.Message);
+            data = null;
+        }
         return data;
     }
 
@@ -239,7 +298,8 @@ public class IIOCmdSrv
                     retval = retval.Substring(0, pos);
                     rlen = Convert.ToInt32(retval);
                     if (rlen < 0)
-                        throw new Exception("TargetError: " + retval + " (" + request + ")");
+                        return null;
+                        //throw new Exception("TargetError: " + retval + " (" + request + ")");
 
                     do_ret = 0;
                     pos = pos + 1;
@@ -272,19 +332,23 @@ public class IIOCmdSrv
 
     public IIODevice[] ListDevices()
     {
-        IIODevice[] devices;
+        IIODevice[] devices = null;
         string[] strDevices;
+        string tmp;
         int i = 0;
 
-        strDevices = Read("show\n", true).Trim().Split(' ');
-        devices = new IIODevice[strDevices.Length];
-
-        foreach (var d in strDevices)
+        tmp = Read("show\n", true);
+        if (tmp != null)
         {
-            devices[i] = new IIODevice(this, d);
-            i++;
-        }
+            strDevices = tmp.Trim().Split(' ');
+            devices = new IIODevice[strDevices.Length];
 
+            foreach (var d in strDevices)
+            {
+                devices[i] = new IIODevice(this, d);
+                i++;
+            }
+        }
         return devices;
     }
 
