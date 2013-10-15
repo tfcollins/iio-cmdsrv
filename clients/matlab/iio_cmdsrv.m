@@ -254,7 +254,7 @@ classdef iio_cmdsrv < handle
             cmd = sprintf('regread %s %d\n', name, reg);            
             [ret, buf] = obj.iio_cmd_read(obj.IIO_CMDSRV_MAX_STRINGVAL, cmd);
             if (ret >= 0)
-                [val, cnt] = sscanf(buf, '%x\n');
+                [val, cnt] = sscanf(buf, '%i\n');
                 if (cnt == 1)
                     ret = 0;
                 else
