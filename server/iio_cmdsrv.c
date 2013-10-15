@@ -23,7 +23,7 @@
 
 #include "iio_utils.h"
 
-#define CURR_VERSION	"0.2"
+#define CURR_VERSION	"0.3"
 #define MAX_STR_LEN	1024
 #define DBFS_REG_ATTR	"direct_reg_access"
 #define REPORT_RETVAL(x) fprintf(stdout, "%d\n\n\n", x)
