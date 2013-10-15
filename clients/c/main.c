@@ -11,7 +11,7 @@ int main (void)
 	short buf2[400000];
 	char *buf = (char*) buf2;
 
-	ret = iio_cmdsrv_connect("10.44.2.188", "1234", &srv);
+	ret = iio_cmdsrv_connect("10.44.2.188", "1234", TCP, &srv);
 	if (ret)
 		perror("connection failed");
 

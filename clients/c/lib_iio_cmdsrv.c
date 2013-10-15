@@ -51,7 +51,7 @@ void iio_cmdsrv_disconnect(struct iio_cmdsrv *handle)
 	}
 }
 
-int iio_cmdsrv_connect(const char *addr, const char *port, struct iio_cmdsrv *handle)
+int iio_cmdsrv_connect(const char *addr, const char *port, const char protocol, struct iio_cmdsrv *handle)
 {
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
@@ -69,7 +69,12 @@ int iio_cmdsrv_connect(const char *addr, const char *port, struct iio_cmdsrv *ha
 
 	memset(&hints, 0, sizeof (struct addrinfo));
 	hints.ai_family = AF_INET;
+	if(protocol == TCP) {
 	hints.ai_socktype = SOCK_STREAM;
+	} else if(protocol == UDP) {	
+		hints.ai_socktype = SOCK_DGRAM;
+		hints.ai_protocol = IPPROTO_UDP;
+	}
 
 	in[0] = malloc(sizeof(*in[0]));
 	memset(in[0], 0, sizeof (*in[0]));
@@ -200,7 +205,7 @@ int iio_cmd_send(struct iio_cmdsrv *s, const char *str, ...)
 	va_start(args, str);
 	ret = iio_cmd_send_va(s, str, args);
 	if (ret < 0) {
-		iio_cmdsrv_connect(NULL, NULL, s);
+		iio_cmdsrv_connect(NULL, NULL, -1, s);
 		ret = iio_cmd_send_va(s, str, args);
 	}
 	va_end(args);
@@ -236,7 +241,7 @@ static int iio_cmd_read_va(struct iio_cmdsrv *s, char *rbuf, unsigned rlen,
 		return ret;
 	}
 
-	ret = srv_receive(s, retval, IIO_CMDSRV_MAX_RETVAL, rbuf, &rx_len, 1);
+	ret = srv_receive(s, retval, rlen, rbuf, &rx_len, 1);
 
 	if ((ret >= 0) && (sscanf(retval, "%d\n", &ret) == 1)) {
 		if (ret >= 0) {
@@ -263,7 +268,7 @@ int iio_cmd_read(struct iio_cmdsrv *s, char *rbuf, unsigned rlen,
 	va_start(args, str);
 	ret = iio_cmd_read_va(s, rbuf, rlen, str, args);
 	if (ret < 0) {
-		iio_cmdsrv_connect(NULL, NULL, s);
+		iio_cmdsrv_connect(NULL, NULL, -1, s);
 		ret = iio_cmd_read_va(s, rbuf, rlen, str, args);
 	}
 	va_end(args);
@@ -278,7 +283,7 @@ int iio_cmd_regread(struct iio_cmdsrv *s, char *name, unsigned reg, unsigned *va
 
 	ret = iio_cmd_read(s, buf, IIO_CMDSRV_MAX_STRINGVAL, "regread %s %d\n", name, reg);
 	if (ret >= 0)
-		if (sscanf(buf, "%u\n", val) == 1)
+		if (sscanf(buf, "%i\n", val) == 1)
 			return 0;
 		else
 			return -EINVAL;
@@ -317,7 +322,7 @@ int iio_cmd_sample(struct iio_cmdsrv *s, const char *name,char *rbuf,
 
 	if ((ret >= 0) && (sscanf(buf, "%d\n", &retval) == 1)) {
 		if (retval >= 0) {
-			ret = srv_receive(s, &rbuf[rlen], (retval) - rlen, NULL, NULL, 0);
+			ret = srv_receive(s, &rbuf[rlen], (retval), NULL, NULL, 0);
 			if (ret >= 0)
 				ret = retval;
 		} else {

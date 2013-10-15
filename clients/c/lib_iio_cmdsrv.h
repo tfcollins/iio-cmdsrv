@@ -14,6 +14,9 @@
 #define IIO_CMDSRV_MAX_RETVAL	13
 #define IIO_CMDSRV_MAX_STRINGVAL 512
 
+#define UDP 0
+#define TCP 1
+
 struct iio_cmdsrv {
 	int sockfd;
 	char addr[INET6_ADDRSTRLEN + 1];
@@ -23,7 +26,7 @@ struct iio_cmdsrv {
 void iio_cmdsrv_disconnect(struct iio_cmdsrv *handle);
 
 int iio_cmdsrv_connect(const char *addr, const char *port,
-		struct iio_cmdsrv *handle);
+		const char protocol, struct iio_cmdsrv *handle);
 
 int iio_cmd_send(struct iio_cmdsrv *s, const char *str, ...);
 
