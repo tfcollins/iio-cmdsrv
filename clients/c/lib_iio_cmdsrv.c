@@ -164,6 +164,15 @@ static int srv_receive(struct iio_cmdsrv *s, char *rbuf, unsigned rlen,
 			rbuf2[(*rlen2)++] = rbuf[i];
 		}
 
+	if(rbuf2 && rlen2 && (*rlen2 == 0)) {
+		while(rbuf[*rlen2]) {
+			rbuf2[*rlen2] = rbuf[*rlen2];
+			(*rlen2)++;
+		}
+		rbuf2[*rlen2] = 0;
+		(*rlen2)++;
+	}
+
 	return term;
 }
 
