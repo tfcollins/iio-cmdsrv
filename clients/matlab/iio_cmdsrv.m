@@ -85,6 +85,15 @@ classdef iio_cmdsrv < handle
                     rbuf2(rlen2) = rbuf(i);
                 end
             end
+			
+			if(has_buf2 ~= 0 && rlen2 == 0)
+                rlen2 = 1;
+				while (rbuf(rlen2) ~= 0)                    
+					rbuf2(rlen2) = rbuf(rlen2);                    
+					rlen2 = rlen2 + 1;
+                end
+				rbuf2(rlen2) = 0;
+            end
             
             ret = term;
         end

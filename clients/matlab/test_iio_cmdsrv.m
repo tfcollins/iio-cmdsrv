@@ -7,7 +7,10 @@ close all;
 
 obj = iio_cmdsrv;
 
-iio_cmdsrv_connect(obj, '192.168.11.153', 4321);
+iio_cmdsrv_connect(obj, '192.168.11.125', 1234);
+
+[ret, rbuf] = iio_cmd_read(obj, 200, 'version\n');
+sprintf('\nversion --> return: %d, data: %s\n', ret, rbuf)
 
 [ret, rbuf] = iio_cmd_read(obj, 200, 'read cf-ad9643-core-lpc name\n');
 sprintf('\nread cf-ad9643-core-lpc name --> return: %d, data: %s\n', ret, rbuf)
