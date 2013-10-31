@@ -37,6 +37,10 @@
 	"sample <IIODeviceName> <NUMSamples> <BytesPerSample>\n" \
 	"regread <IIODeviceName> <RegisterAddress>\n" \
 	"regwrite <IIODeviceName> <RegisterAddress> <Value>\n" \
+	"dbfsread <IIODeviceName> <Attribute>\n" \
+	"dbfswrite <IIODeviceName> <Attribute> <Value>\n" \
+	"show [<IIODeviceName> <Path>]\n" \
+	"dbfsshow <IIODeviceName> <Path>\n" \
 	"version\n"
 
 char dev_dir_name[PATH_MAX];
@@ -60,9 +64,12 @@ enum {
 	DO_SAMPLE,
 	DO_READBUF,
 	DO_WRITEBUF,
+	DO_DBFSREGWRITE,
+	DO_DBFSREGREAD,
+	DO_SHOW,
 	DO_DBFSWRITE,
 	DO_DBFSREAD,
-	DO_SHOW,
+	DO_DBFSSHOW,
 };
 
 int set_dev_paths(char *device_name)
@@ -172,15 +179,15 @@ error:
 
 int iio_writebuf(int samples)
 {
-	int ret, buf_len, n, rc = 0;
+	int ret, n, rc = 0;
 	int fp;
 	unsigned char *data;
 
 	/* Setup ring buffer parameters */
 	ret = write_sysfs_int("length", buf_dir_name, samples);
 	if (ret < 0) {
-		syslog(LOG_ERR, "write_sysfs_int failed (%d) (%d) %s %d\n",
-			__LINE__, ret, buf_dir_name, buf_len);
+		syslog(LOG_ERR, "write_sysfs_int failed (%d) (%d) %s\n",
+			__LINE__, ret, buf_dir_name);
 		goto error_ret;
 	}
 
@@ -404,17 +411,17 @@ error_ret:
 	return ret;
 }
 
-int iio_show_device_attributes(char *attr)
+int iio_show_device_attributes(char *dir_name, char *attr)
 {
 	const struct dirent *ent;
 	DIR *dp;
 	int ret = 0, first = 1;
 
 	if (attr == NULL) {
-		dp = opendir(dev_dir_name);
+		dp = opendir(dir_name);
 	} else {
 		char path[PATH_MAX];
-		ret = snprintf(path, PATH_MAX, "%s/%s", dev_dir_name, attr);
+		ret = snprintf(path, PATH_MAX, "%s/%s", dir_name, attr);
 		if (ret >= PATH_MAX) {
 			syslog(LOG_ERR, "set_dev_paths failed (%d)\n", __LINE__);
 			ret = -EFAULT;
@@ -482,8 +489,14 @@ int main (void)
 		} else if (strncmp(token, "show", 4) == 0) {
 			cmd = DO_SHOW;
 		} else if (strncmp(token, "regwrite", 8) == 0) {
-			cmd = DO_DBFSWRITE;
+			cmd = DO_DBFSREGWRITE;
 		} else if (strncmp(token, "regread", 7) == 0) {
+			cmd = DO_DBFSREGREAD;
+		} else if (strncmp(token, "dbfsshow", 8) == 0) {
+			cmd = DO_DBFSSHOW;
+		} else if (strncmp(token, "dbfswrite", 9) == 0) {
+			cmd = DO_DBFSWRITE;
+		} else if (strncmp(token, "dbfsread", 8) == 0) {
 			cmd = DO_DBFSREAD;
 		} else if (strncmp(token, "version", 7) == 0) {
 			printf("%s\n", CURR_VERSION);
@@ -586,7 +599,7 @@ int main (void)
 					iio_writebuf(val);
 				REPORT_RETVAL(ret);
 				break;
-			case DO_DBFSREAD:
+			case DO_DBFSREGREAD:
 				ret = write_devattr(dbfs_dir_name, DBFS_REG_ATTR, attr, NULL);
 				if (ret < 0) {
 					REPORT_RETVAL(ret);
@@ -594,7 +607,7 @@ int main (void)
 				}
 				read_devattr_stdout(dbfs_dir_name, DBFS_REG_ATTR);
 				break;
-			case DO_DBFSWRITE:
+			case DO_DBFSREGWRITE:
 				token = strtok_r(NULL, " \n", &saveptr1);
 				if (token)
 					ret = write_devattr(dbfs_dir_name, DBFS_REG_ATTR, attr, token);
@@ -603,7 +616,22 @@ int main (void)
 				REPORT_RETVAL(ret);
 				break;
 			case DO_SHOW:
-				iio_show_device_attributes(attr);
+				iio_show_device_attributes(dev_dir_name, attr);
+				break;
+			case DO_DBFSSHOW:
+				iio_show_device_attributes(dbfs_dir_name, attr);
+				break;
+			case DO_DBFSREAD:
+				read_devattr_stdout(dbfs_dir_name, attr);
+				break;
+			case DO_DBFSWRITE:
+				token = strtok_r(NULL, " \n", &saveptr1);
+				if (token)
+					ret = write_devattr(dbfs_dir_name, attr, token, NULL);
+				else
+					ret = -EINVAL;
+
+				REPORT_RETVAL(ret);
 				break;
 			default:
 				break;
