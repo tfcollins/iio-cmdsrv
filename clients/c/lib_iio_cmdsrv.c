@@ -292,7 +292,7 @@ int iio_cmd_regread(struct iio_cmdsrv *s, char *name, unsigned reg, unsigned *va
 
 	ret = iio_cmd_read(s, buf, IIO_CMDSRV_MAX_STRINGVAL, "regread %s %d\n", name, reg);
 	if (ret >= 0)
-		if (sscanf(buf, "%i\n", val) == 1)
+		if (sscanf(buf, "%u\n", val) == 1)
 			return 0;
 		else
 			return -EINVAL;
