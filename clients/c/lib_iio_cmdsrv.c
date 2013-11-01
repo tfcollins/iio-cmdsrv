@@ -122,6 +122,7 @@ int iio_cmdsrv_connect(const char *addr, const char *port, const char protocol, 
 		s, sizeof s);
 
 	freeaddrinfo(servinfo);
+	free(in[0]);
 
 	return 0;
 }
