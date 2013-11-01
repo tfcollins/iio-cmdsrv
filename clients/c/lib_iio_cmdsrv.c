@@ -193,8 +193,6 @@ static int iio_cmd_send_va(struct iio_cmdsrv *s, const char *str, va_list args)
 	if (len < 0)
 		syslog(LOG_ERR, "%s: vsprintf\n", __func__);
 
-	fprintf(stderr, "iio_cmd_send_va: %s\n", buf);
-
 	ret = send(s->sockfd, buf, len, 0);
 	if (ret < 0)
 		syslog(LOG_ERR, "%s: send failed (%d)\n", __func__, ret);
