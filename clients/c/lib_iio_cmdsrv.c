@@ -250,7 +250,7 @@ static int iio_cmd_read_va(struct iio_cmdsrv *s, char *rbuf, unsigned rlen,
 		return ret;
 	}
 
-	ret = srv_receive(s, retval, rlen, rbuf, &rx_len, 1);
+	ret = srv_receive(s, retval, IIO_CMDSRV_MAX_RETVAL, rbuf, &rx_len, 1);
 
 	if ((ret >= 0) && (sscanf(retval, "%d\n", &ret) == 1)) {
 		if (ret >= 0) {
