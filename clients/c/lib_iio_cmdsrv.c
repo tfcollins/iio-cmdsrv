@@ -226,7 +226,7 @@ static int iio_cmd_read_va(struct iio_cmdsrv *s, char *rbuf, unsigned rlen,
 		const char *str, va_list args)
 {
 	char buf[IIO_CMDSRV_MAX_STRINGVAL];
-	char retval[IIO_CMDSRV_MAX_RETVAL + 1];
+	char* retval;
 	int len, ret;
 	unsigned rx_len = 0;
 
@@ -241,29 +241,39 @@ static int iio_cmd_read_va(struct iio_cmdsrv *s, char *rbuf, unsigned rlen,
 
 	len = vsprintf(buf, str, args);
 	if (len < 0)
-		perror("iio_cmd_send");
+		perror("iio_cmd_read_va");
 
+	retval = malloc(rlen);
+	if (!retval) {
+		perror("iio_cmd_read_va:malloc");
+		return -1;
+	}
+		
 	ret = send(s->sockfd, buf, len, MSG_DONTWAIT);
 	if (ret < 0) {
-		perror("iio_cmd_send:send");
+		perror("iio_cmd_read_va:send");
+		free(retval);
 		return ret;
 	}
 
-	ret = srv_receive(s, retval, IIO_CMDSRV_MAX_RETVAL, rbuf, &rx_len, 1);
+	ret = srv_receive(s, retval, rlen, rbuf, &rx_len, 1);
 
 	if ((ret >= 0) && (sscanf(retval, "%d\n", &ret) == 1)) {
 		if (ret >= 0) {
 			/* Already received the entire response ? */
 			if (rbuf[rx_len - 1] == 0 || rbuf[rx_len - 1] == '\n') {
 				rbuf[rx_len - 1] = 0;
+				free(retval);
 				return ret;
 			}
 			ret = srv_receive(s, &rbuf[rx_len], rlen - rx_len, NULL, NULL, 1);
 		} else {
+			free(retval);
 			return ret;
 		}
 	}
 
+	free(retval);
 	return ret;
 }
 
@@ -288,12 +298,14 @@ int iio_cmd_regread(struct iio_cmdsrv *s, char *name, unsigned reg, unsigned *va
 {
 	char buf[IIO_CMDSRV_MAX_STRINGVAL];
 	int ret;
+	int ival;
 
 	ret = iio_cmd_read(s, buf, IIO_CMDSRV_MAX_STRINGVAL, "regread %s %d\n", name, reg);
 	if (ret >= 0)
-		if (sscanf(buf, "%u\n", val) == 1)
+		if (sscanf(buf, "%i\n", &ival) == 1) {
+			*val = (unsigned)ival;
 			return 0;
-		else
+		} else
 			return -EINVAL;
 	else
 		return ret;
@@ -367,7 +379,9 @@ int iio_cmd_bufwrite(struct iio_cmdsrv *s, const char *name, char *wbuf,
 
 	len = 0;
 	do {
-		ret = send(s->sockfd, wbuf + len, count - len, 0);
+		ret = send(s->sockfd, wbuf + len,
+				  (count - len) > IIO_CMDSRV_MAX_SENDVAL ?
+				  IIO_CMDSRV_MAX_SENDVAL : count - len, 0);
 		if (ret > 0) {
 			len += ret;
 		} else if (errno == EAGAIN) {
@@ -377,5 +391,5 @@ int iio_cmd_bufwrite(struct iio_cmdsrv *s, const char *name, char *wbuf,
 		}
 	} while (len < count);
 
-	return ret;
+	return ret > 0 ? (int)len : ret;
 }

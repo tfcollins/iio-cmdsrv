@@ -11,8 +11,9 @@
 
 #include <netinet/in.h>
 
-#define IIO_CMDSRV_MAX_RETVAL	13
+#define IIO_CMDSRV_MAX_RETVAL	 13
 #define IIO_CMDSRV_MAX_STRINGVAL 512
+#define IIO_CMDSRV_MAX_SENDVAL   4096
 
 #define UDP 0
 #define TCP 1
