@@ -18,6 +18,10 @@
 #define UDP 0
 #define TCP 1
 
+#define ERRNO_BASE_LOCAL	1000
+#define IS_ERR_LOCAL(x)		((x) < -ERRNO_BASE_LOCAL)
+#define ERR_LOCAL(x)		((x) - ERRNO_BASE_LOCAL)
+
 struct iio_cmdsrv {
 	int sockfd;
 	char addr[INET6_ADDRSTRLEN + 1];

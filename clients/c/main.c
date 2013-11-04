@@ -19,7 +19,11 @@ void check (char * cmd, int ret)
 			cmd++;
 		}
 		printf("'\n");
-		printf("ret : %d\n", ret);
+		if (IS_ERR_LOCAL(ret))
+			printf("Local error ret : %d (%s)\n", ret + ERRNO_BASE_LOCAL,
+				strerror(abs(ret + ERRNO_BASE_LOCAL)));
+		else
+			printf("ret : %d (%s)\n", ret, strerror(abs(ret)));
 		printf("Exiting with error: %s\n", strerror(errno));
 		exit(-1);
 	}
@@ -178,14 +182,14 @@ static int network_test(const char *ipnum, const char *port, const char protocol
 		if (!strcmp(device, "cf-ad9643-core-lpc"))
 			ad9643(srv);
 
-/*
+
 		sprintf(command, "register 0x0 read of %s", device);
 		ret = iio_cmd_regread(&srv, device, 0x00, &i);
 		if (ret != -111) {
 			check(command, ret);
 			printf("register 0 = %x\n", i);
 		}
-*/
+
 
 		tmp = tmp2 + 1;
 

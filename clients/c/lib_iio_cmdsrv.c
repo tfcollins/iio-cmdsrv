@@ -141,7 +141,7 @@ static int srv_receive(struct iio_cmdsrv *s, char *rbuf, unsigned rlen,
 				if (retry--)
 					continue;
 			}
-			return -errno;
+			return ERR_LOCAL(-errno);
 		}
 		len += rx_len;
 
@@ -185,24 +185,29 @@ static int iio_cmd_send_va(struct iio_cmdsrv *s, const char *str, va_list args)
 
 	if (s->sockfd < 0) {
 		syslog(LOG_ERR, "%s: not connected\n", __func__);
-		return -1;
+		return ERR_LOCAL(-1);
 	}
 
 	len = vsprintf(buf, str, args);
 
-	if (len < 0)
+	if (len < 0) {
 		syslog(LOG_ERR, "%s: vsprintf\n", __func__);
+		return ERR_LOCAL(len);
+	}
+
 
 	ret = send(s->sockfd, buf, len, 0);
-	if (ret < 0)
+	if (ret < 0) {
 		syslog(LOG_ERR, "%s: send failed (%d)\n", __func__, ret);
+		return ERR_LOCAL(ret);
+	}
 
 	ret = srv_receive(s, retval, IIO_CMDSRV_MAX_RETVAL, NULL, NULL, 1);
 	if (ret >= 0)
 		if (sscanf(retval, "%d\n", &ret_target) == 1)
 			return ret_target;
 
-	return ret;
+	return ERR_LOCAL(ret);
 }
 
 int iio_cmd_send(struct iio_cmdsrv *s, const char *str, ...)
@@ -212,7 +217,7 @@ int iio_cmd_send(struct iio_cmdsrv *s, const char *str, ...)
 
 	va_start(args, str);
 	ret = iio_cmd_send_va(s, str, args);
-	if (ret < 0) {
+	if (IS_ERR_LOCAL(ret)) {
 		iio_cmdsrv_connect(NULL, NULL, -1, s);
 		ret = iio_cmd_send_va(s, str, args);
 	}
@@ -236,42 +241,45 @@ static int iio_cmd_read_va(struct iio_cmdsrv *s, char *rbuf, unsigned rlen,
 
 	if (s->sockfd < 0) {
 		syslog(LOG_ERR, "%s: not connected\n", __func__);
-		return -1;
+		return ERR_LOCAL(-1);
 	}
 
 	len = vsprintf(buf, str, args);
-	if (len < 0)
-		perror("iio_cmd_read_va");
+	if (len < 0) {
+		syslog(LOG_ERR, "%s: vsprintf\n", __func__);
+		return ERR_LOCAL(len);
+	}
 
 	retval = malloc(rlen);
 	if (!retval) {
 		perror("iio_cmd_read_va:malloc");
-		return -1;
+		return ERR_LOCAL(-ENOMEM);
 	}
 		
 	ret = send(s->sockfd, buf, len, MSG_DONTWAIT);
 	if (ret < 0) {
 		perror("iio_cmd_read_va:send");
 		free(retval);
-		return ret;
+		return ERR_LOCAL(ret);
 	}
 
 	ret = srv_receive(s, retval, rlen, rbuf, &rx_len, 1);
 
-	if ((ret >= 0) && (sscanf(retval, "%d\n", &ret) == 1)) {
-		if (ret >= 0) {
-			/* Already received the entire response ? */
-			if (rbuf[rx_len - 1] == 0 || rbuf[rx_len - 1] == '\n') {
-				rbuf[rx_len - 1] = 0;
+	if (!IS_ERR_LOCAL(ret))
+		if ((ret >= 0) && (sscanf(retval, "%d\n", &ret) == 1)) {
+			if (ret >= 0) {
+				/* Already received the entire response ? */
+				if (rbuf[rx_len - 1] == 0 || rbuf[rx_len - 1] == '\n') {
+					rbuf[rx_len - 1] = 0;
+					free(retval);
+					return ret;
+				}
+				ret = srv_receive(s, &rbuf[rx_len], rlen - rx_len, NULL, NULL, 1);
+			} else {
 				free(retval);
 				return ret;
 			}
-			ret = srv_receive(s, &rbuf[rx_len], rlen - rx_len, NULL, NULL, 1);
-		} else {
-			free(retval);
-			return ret;
 		}
-	}
 
 	free(retval);
 	return ret;
@@ -285,7 +293,7 @@ int iio_cmd_read(struct iio_cmdsrv *s, char *rbuf, unsigned rlen,
 
 	va_start(args, str);
 	ret = iio_cmd_read_va(s, rbuf, rlen, str, args);
-	if (ret < 0) {
+	if (IS_ERR_LOCAL(ret)) {
 		iio_cmdsrv_connect(NULL, NULL, -1, s);
 		ret = iio_cmd_read_va(s, rbuf, rlen, str, args);
 	}
@@ -325,21 +333,24 @@ int iio_cmd_sample(struct iio_cmdsrv *s, const char *name,char *rbuf,
 
 	if (s->sockfd < 0) {
 		syslog(LOG_ERR, "%s: not connected\n", __func__);
-		return -1;
+		return ERR_LOCAL(-1);
 	}
 
 	len = sprintf(buf, "sample %s %d %d\n", name, count, bytes_per_sample);
-	if (len < 0)
+	if (len < 0) {
 		perror("iio_cmd_send");
+		return ERR_LOCAL(len);
+	}
 
 	ret = send(s->sockfd, buf, len, 0);
 	if (ret < 0) {
 		perror("iio_cmd_send:send");
-		return ret;
+		return ERR_LOCAL(ret);
 	}
 
 	ret = srv_receive(s, buf, IIO_CMDSRV_MAX_RETVAL, rbuf, &rlen, 1);
-
+	
+	if (!IS_ERR_LOCAL(ret))
 	if ((ret >= 0) && (sscanf(buf, "%d\n", &retval) == 1)) {
 		if (retval >= 0) {
 			ret = srv_receive(s, &rbuf[rlen], (retval), NULL, NULL, 0);
@@ -363,18 +374,20 @@ int iio_cmd_bufwrite(struct iio_cmdsrv *s, const char *name, char *wbuf,
 
 	if (s->sockfd < 0) {
 		syslog(LOG_ERR, "%s: not connected\n", __func__);
-		return -1;
+		return ERR_LOCAL(-1);
 	}
 
 	ret = sprintf(buf, "bufwrite %s %d\n", name, count);
-	if (ret < 0)
+	if (ret < 0) {
 		perror("iio_cmd_send");
+		return ERR_LOCAL(len);
+	}
 
 	len = ret;
 	ret = send(s->sockfd, buf, len, 0);
 	if (ret < 0) {
 		perror("iio_cmd_send:send");
-		return ret;
+		return ERR_LOCAL(ret);
 	}
 
 	len = 0;
@@ -387,7 +400,7 @@ int iio_cmd_bufwrite(struct iio_cmdsrv *s, const char *name, char *wbuf,
 		} else if (errno == EAGAIN) {
 			continue;
 		} else {
-			return -errno;
+			return ERR_LOCAL(-errno);
 		}
 	} while (len < count);
 
