@@ -64,9 +64,9 @@ sprintf('\niio_cmd_regwrite cf-ad9643-core-lpc 0x20 0 --> return: %d\n', ret)
 [ret, val] = iio_cmd_regread(obj, 'cf-ad9643-core-lpc', hex2dec('20'));
 sprintf('\niio_cmd_regread cf-ad9643-core-lpc --> return: %d, data: %d\n', ret, val)
 
-% buf = zeros(1, 400000);
-% ret = iio_cmd_bufwrite(obj, 'cf-ad9643-core-lpc', buf, 400000);
-% sprintf('\niio_cmd_bufwrite cf-ad9643-core-lpc 400000 --> return: %d\n', ret)
+buf = zeros(1, 400000);
+ret = iio_cmd_bufwrite(obj, 'cf-ad9643-core-lpc', buf, 400000);
+sprintf('\niio_cmd_bufwrite cf-ad9643-core-lpc 400000 --> return: %d\n', ret)
 
 ret = iio_cmdsrv_disconnect(obj);
 sprintf('\niio_cmdsrv_disconnect --> return: %d\n', ret)

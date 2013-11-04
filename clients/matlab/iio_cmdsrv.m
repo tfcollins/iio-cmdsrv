@@ -17,7 +17,7 @@ classdef iio_cmdsrv < handle
         srv_port = 25000;               % Server port
         IIO_CMDSRV_MAX_RETVAL = 13;     % Maximum command length returned by the server 
         IIO_CMDSRV_MAX_STRINGVAL = 512; % Maximum string length returned by the server
-        IIO_CMDSRV_MAX_MSG_LEN = 255;   % Maximum message length to be sent to the server
+        IIO_CMDSRV_MAX_MSG_LEN = 4096;  % Maximum message length to be sent to the server
     end
     
     methods (Access = private)
@@ -299,6 +299,9 @@ classdef iio_cmdsrv < handle
             for idx = 1 : obj.IIO_CMDSRV_MAX_MSG_LEN : count
                 if(idx + obj.IIO_CMDSRV_MAX_MSG_LEN < count)
                     step(obj.hudps, uint8(wbuf(idx : idx + obj.IIO_CMDSRV_MAX_MSG_LEN - 1)));
+                    % a small delay to avoid the server from clogging
+                    for idx1 = 1 : obj.IIO_CMDSRV_MAX_MSG_LEN                        
+                    end
                 else
                     step(obj.hudps, uint8(wbuf(idx : count)));
                 end
