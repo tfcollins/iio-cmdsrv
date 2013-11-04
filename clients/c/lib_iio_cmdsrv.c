@@ -70,8 +70,8 @@ int iio_cmdsrv_connect(const char *addr, const char *port, const char protocol, 
 	memset(&hints, 0, sizeof (struct addrinfo));
 	hints.ai_family = AF_INET;
 	if(protocol == TCP) {
-	hints.ai_socktype = SOCK_STREAM;
-	} else if(protocol == UDP) {	
+		hints.ai_socktype = SOCK_STREAM;
+	} else if(protocol == UDP) {
 		hints.ai_socktype = SOCK_DGRAM;
 		hints.ai_protocol = IPPROTO_UDP;
 	}
