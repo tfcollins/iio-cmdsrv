@@ -19,16 +19,14 @@ void check (char * cmd, int ret)
 			cmd++;
 		}
 		printf("'\n");
-		if (IS_ERR_LOCAL(ret))
+		if (IS_ERR_LOCAL(ret)) {
 			printf("Local error ret : %d (%s)\n", ret + ERRNO_BASE_LOCAL,
 				strerror(abs(ret + ERRNO_BASE_LOCAL)));
-		else
-			printf("ret : %d (%s)\n", ret, strerror(abs(ret)));
-		printf("Exiting with error: %s\n", strerror(errno));
-		exit(-1);
-	}
-
-	if (ret != 0)
+			printf("Exiting with error: %s\n", strerror(errno));
+			exit(-1);
+		} else
+			printf("remote error : %d (%s)\n", ret, strerror(abs(ret)));
+	} else if (ret != 0)
 		printf("return code %i\n", ret);
 }
 
@@ -185,10 +183,9 @@ static int network_test(const char *ipnum, const char *port, const char protocol
 
 		sprintf(command, "register 0x0 read of %s", device);
 		ret = iio_cmd_regread(&srv, device, 0x00, &i);
-		if (ret != -111) {
-			check(command, ret);
-			printf("register 0 = %x\n", i);
-		}
+		check(command, ret);
+		if (ret == 0)
+			printf("register 0 = 0x%x\n", i);
 
 
 		tmp = tmp2 + 1;
