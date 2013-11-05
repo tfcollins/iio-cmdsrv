@@ -380,7 +380,7 @@ int iio_cmd_bufwrite(struct iio_cmdsrv *s, const char *name, char *wbuf,
 	ret = sprintf(buf, "bufwrite %s %d\n", name, count);
 	if (ret < 0) {
 		perror("iio_cmd_send");
-		return ERR_LOCAL(len);
+		return ERR_LOCAL(ret);
 	}
 
 	len = ret;
